@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContractIQ — BOLD/TDP</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f4f2;--sur:#fff;--bor:#e6e6e3;--t1:#111;--t2:#555;--t3:#aaa;
+  --blue:#1a4fa0;--blue-l:#eef2fb;
+  --red:#c0392b;--red-l:#fef0ef;--red-b:#f5c0bb;
+  --ora:#c47d0e;--ora-l:#fef8ec;--ora-b:#f5d98a;
+  --grn:#2a7a3b;--grn-l:#f0faf2;--grn-b:#a8dbb0;
+  --rad:10px;--rads:6px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--t1);font-size:14px;line-height:1.5;height:100vh;display:flex;flex-direction:column}
+
+/* ─── LOGIN ─── */
+#login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999}
+.lcard{background:var(--sur);border:1px solid var(--bor);border-radius:14px;padding:40px;width:320px;text-align:center;box-shadow:0 2px 16px rgba(0,0,0,.07)}
+.lcard h1{font-size:19px;font-weight:700;margin-bottom:3px}
+.lcard p{font-size:13px;color:var(--t2);margin-bottom:22px}
+.lcard input{width:100%;padding:10px 12px;border:1px solid var(--bor);border-radius:var(--rads);font-size:14px;outline:none;background:var(--bg);margin-bottom:10px}
+.lcard input:focus{border-color:var(--blue)}
+.lcard button{width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:var(--rads);font-size:14px;font-weight:600;cursor:pointer}
+.lcard button:hover{background:#163f85}
+.lerr{font-size:12px;color:var(--red);margin-top:8px;display:none}
+
+/* ─── APP ─── */
+#app{display:none;flex:1;flex-direction:column;overflow:hidden}
+#app.on{display:flex}
+
+/* topbar */
+.topbar{height:48px;background:var(--sur);border-bottom:1px solid var(--bor);display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0}
+.tlogo{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.ttag{font-size:10px;font-weight:700;background:var(--blue-l);color:var(--blue);padding:2px 8px;border-radius:4px;letter-spacing:.06em}
+.tright{display:flex;align-items:center;gap:6px}
+.tview{padding:5px 12px;border-radius:var(--rads);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--bor);background:var(--sur);color:var(--t2);transition:all .12s}
+.tview.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.tuser{font-size:12px;color:var(--t2);margin-left:8px}
+.tout{font-size:12px;color:var(--t3);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:4px}
+.tout:hover{background:var(--bg);color:var(--t1)}
+
+/* layout */
+.layout{display:flex;flex:1;overflow:hidden}
+
+/* ─── LEFT PANEL ─── */
+.lpanel{width:210px;flex-shrink:0;background:var(--sur);border-right:1px solid var(--bor);padding:16px;display:flex;flex-direction:column;gap:14px}
+.lbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em}
+
+.dropz{border:1.5px dashed #ccc;border-radius:var(--rad);padding:18px 10px;text-align:center;cursor:pointer;position:relative;transition:all .15s}
+.dropz:hover,.dropz.over{background:var(--blue-l);border-color:var(--blue)}
+.dropz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dzi{font-size:22px;margin-bottom:5px}
+.dzt{font-size:12px;color:var(--t2);line-height:1.4}
+.dzok{font-size:12px;color:var(--blue);font-weight:600;line-height:1.4}
+
+.gobtn{padding:10px;background:var(--blue);color:#fff;border:none;border-radius:var(--rads);font-size:13px;font-weight:700;cursor:pointer;width:100%}
+.gobtn:hover:not(:disabled){background:#163f85}
+.gobtn:disabled{background:#ccc;cursor:not-allowed}
+
+/* ─── MAIN ─── */
+.main{flex:1;display:flex;overflow:hidden}
+.center{flex:1;overflow-y:auto;padding:22px}
+.rside{width:220px;flex-shrink:0;border-left:1px solid var(--bor);background:var(--sur);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+
+/* empty */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--t2)}
+.empty .ei{font-size:44px;opacity:.15}
+.empty p{font-size:14px}
+
+/* loading */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px}
+.loading p{font-size:14px;color:var(--t2)}
+.dots span{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--blue);margin:0 3px;animation:bop .9s infinite}
+.dots span:nth-child(2){animation-delay:.18s}.dots span:nth-child(3){animation-delay:.36s}
+@keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-7px)}}
+
+/* ─── RIGHT SIDE PANEL ─── */
+.rp-lbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+.rp-row{margin-bottom:8px}
+.rp-key{font-size:10px;color:var(--t3);margin-bottom:1px}
+.rp-val{font-size:13px;font-weight:600;color:var(--t1)}
+.rp-val.sm{font-size:12px;font-weight:400;color:var(--t2);line-height:1.4}
+.rp-div{height:1px;background:var(--bor);margin:4px -16px 14px}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:4px}
+.st{text-align:center;padding:7px 4px;border-radius:var(--rads)}
+.st.r{background:var(--red-l)}.st.w{background:var(--ora-l)}.st.g{background:var(--grn-l)}
+.st-n{font-size:19px;font-weight:700}
+.st.r .st-n{color:var(--red)}.st.w .st-n{color:var(--ora)}.st.g .st-n{color:var(--grn)}
+.st-l{font-size:10px;color:var(--t2);margin-top:1px}
+
+.expbtn{width:100%;padding:8px;background:var(--bg);color:var(--t2);border:1px solid var(--bor);border-radius:var(--rads);font-size:12px;font-weight:600;cursor:pointer;margin-top:4px}
+.expbtn:hover{background:var(--bor)}
+
+/* ─── SCORE BANNER ─── */
+.banner{border-radius:var(--rad);padding:14px 16px;margin-bottom:18px;display:flex;gap:12px;align-items:flex-start}
+.banner.r{background:var(--red-l);border:1px solid var(--red-b)}
+.banner.w{background:var(--ora-l);border:1px solid var(--ora-b)}
+.banner.g{background:var(--grn-l);border:1px solid var(--grn-b)}
+.bicon{font-size:22px;flex-shrink:0;margin-top:1px}
+.btitle{font-size:14px;font-weight:700;margin-bottom:3px}
+.banner.r .btitle{color:var(--red)}.banner.w .btitle{color:var(--ora)}.banner.g .btitle{color:var(--grn)}
+.btext{font-size:13px;color:var(--t2);line-height:1.55}
+
+/* ─── SALES VIEW ─── */
+.actions-block{background:var(--sur);border:1px solid var(--bor);border-radius:var(--rad);margin-bottom:14px;overflow:hidden}
+.ab-title{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;padding:10px 14px;border-bottom:1px solid var(--bor);background:var(--bg)}
+.action-row{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bor)}
+.action-row:last-child{border-bottom:none}
+.adot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.adot.critique{background:var(--red)}.adot.important{background:var(--ora)}.adot.mineur{background:var(--grn)}
+.aq{font-size:13px;font-weight:600;margin-bottom:2px}
+.ap{font-size:12px;color:var(--t2);line-height:1.4}
+
+.stitle{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px}
+
+.ccard{background:var(--sur);border:1px solid var(--bor);border-radius:var(--rad);margin-bottom:7px;overflow:hidden}
+.chead{display:flex;align-items:center;gap:9px;padding:11px 13px;cursor:pointer;transition:background .1s;user-select:none}
+.chead:hover{background:#fafaf8}
+.cdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.cdot.r{background:var(--red)}.cdot.w{background:var(--ora)}.cdot.g{background:var(--grn)}
+.ctitle{font-size:13px;font-weight:600;flex:1}
+.cart{font-size:10px;color:var(--t3);font-family:monospace;background:var(--bg);padding:2px 6px;border-radius:4px;flex-shrink:0}
+.cbadge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;flex-shrink:0}
+.cbadge.r{background:var(--red-l);color:var(--red)}.cbadge.w{background:var(--ora-l);color:var(--ora)}.cbadge.g{background:var(--grn-l);color:var(--grn)}
+.carrow{font-size:9px;color:var(--t3);flex-shrink:0;transition:transform .2s}
+.carrow.open{transform:rotate(180deg)}
+
+.csales{padding:9px 13px 11px;background:#fafaf9;border-top:1px solid var(--bor);font-size:13px;color:var(--t2);line-height:1.5}
+
+.cdetail{display:none;border-top:1px solid var(--bor)}
+.cdetail.open{display:block}
+.cdsec{padding:11px 13px;border-bottom:1px solid var(--bor)}
+.cdsec:last-child{border-bottom:none}
+.cdlbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.cdtxt{font-size:13px;color:var(--t1);line-height:1.65}
+.cdtxt.mut{color:var(--t2)}.cdtxt.absent{color:var(--red);background:var(--red-l);padding:8px;border-radius:var(--rads);font-style:italic}
+.cdtxt.fix{color:#1a5c28;background:var(--grn-l);padding:8px;border-radius:var(--rads)}
+
+/* ─── LEGAL VIEW ─── */
+.legal-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--sur);border-radius:var(--rad);overflow:hidden;border:1px solid var(--bor)}
+.legal-table th{background:var(--bg);padding:9px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);border-bottom:1px solid var(--bor)}
+.legal-table td{padding:10px 12px;border-bottom:1px solid var(--bor);vertical-align:top;line-height:1.55}
+.legal-table tr:last-child td{border-bottom:none}
+.legal-table tr:hover td{background:#fafaf8}
+.lpill{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;white-space:nowrap}
+.lpill.r{background:var(--red-l);color:var(--red)}.lpill.w{background:var(--ora-l);color:var(--ora)}.lpill.g{background:var(--grn-l);color:var(--grn)}
+
+.list-block{background:var(--sur);border:1px solid var(--bor);border-radius:var(--rad);padding:13px 15px;margin-bottom:12px}
+.list-block ul{list-style:none;margin-top:7px}
+.list-block li{font-size:13px;color:var(--t2);padding:5px 0;border-bottom:1px solid var(--bor);display:flex;gap:8px;line-height:1.5}
+.list-block li:last-child{border-bottom:none}
+.list-block li::before{content:"→";color:var(--t3);flex-shrink:0;font-size:12px;margin-top:1px}
+
+/* Expanded legal row */
+.legal-expand{display:none;padding:12px;background:#f9f9f8;border-top:1px solid var(--bor)}
+.legal-expand.open{display:block}
+.le-sec{margin-bottom:10px}
+.le-sec:last-child{margin-bottom:0}
+.le-lbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.le-txt{font-size:12px;color:var(--t1);line-height:1.6}
+.le-txt.mut{color:var(--t2)}
+.le-txt.fix{color:#1a5c28;background:var(--grn-l);padding:7px 9px;border-radius:var(--rads)}
+.le-txt.absent{color:var(--red);background:var(--red-l);padding:7px 9px;border-radius:var(--rads);font-style:italic}
+.expand-row td{cursor:pointer}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="lcard">
+    <h1>ContractIQ</h1>
+    <p>BOLD / TDP — Analyse de contrats</p>
+    <input type="password" id="pwd" placeholder="Mot de passe" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button onclick="doLogin()">Accéder</button>
+    <div class="lerr" id="lerr">Mot de passe incorrect</div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="tlogo">ContractIQ <span class="ttag">BOLD / TDP</span></div>
+    <div class="tright">
+      <button class="tview on" id="vs" onclick="setView('sales')">Sales</button>
+      <button class="tview" id="vl" onclick="setView('legal')">Légal</button>
+      <span class="tuser" id="uname"></span>
+      <button class="tout" onclick="doLogout()">Déconnexion</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="lpanel">
+      <div class="lbl">Contrat</div>
+      <div class="dropz" id="dz">
+        <input type="file" accept=".pdf,.docx,.doc,.txt" onchange="onFile(event)"/>
+        <div class="dzi">📄</div>
+        <div id="dzt" class="dzt">Déposer ici<br><small style="color:#ccc">PDF · DOCX</small></div>
+      </div>
+      <button class="gobtn" id="gobtn" disabled onclick="analyze()">Analyser →</button>
+    </div>
+
+    <div class="main">
+      <div class="center" id="center">
+        <div class="empty"><div class="ei">⚖️</div><p>Déposez un contrat pour commencer</p></div>
+      </div>
+      <div class="rside" id="rside" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const WORKER='https://contractiq1.pierre-948.workers.dev';
+const USERS={'boldtdp2024':'Équipe BOLD','sales2024':'Sales','legal2024':'Legal'};
+let contractText=null, data=null, view='sales';
+
+// AUTH
+function doLogin(){
+  const p=document.getElementById('pwd').value;
+  if(USERS[p]){
+    sessionStorage.setItem('ciq',p);
+    document.getElementById('login').style.display='none';
+    document.getElementById('app').classList.add('on');
+    document.getElementById('uname').textContent=USERS[p];
+  } else {
+    document.getElementById('lerr').style.display='block';
+    document.getElementById('pwd').value='';
+  }
+}
+function doLogout(){sessionStorage.removeItem('ciq');location.reload()}
+(()=>{const s=sessionStorage.getItem('ciq');if(s&&USERS[s]){document.getElementById('login').style.display='none';document.getElementById('app').classList.add('on');document.getElementById('uname').textContent=USERS[s]}})();
+
+// VIEW TOGGLE
+function setView(v){
+  view=v;
+  document.getElementById('vs').classList.toggle('on',v==='sales');
+  document.getElementById('vl').classList.toggle('on',v==='legal');
+  if(data) render();
+}
+
+// FILE
+const dz=document.getElementById('dz');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',async e=>{e.preventDefault();dz.classList.remove('over');await loadFile(e.dataTransfer.files[0])});
+async function onFile(e){await loadFile(e.target.files[0])}
+async function loadFile(f){
+  if(!f)return;
+  document.getElementById('dzt').innerHTML='<span style="color:var(--t2)">Lecture…</span>';
+  try{
+    if(f.name.endsWith('.pdf')) contractText=await readPDF(f);
+    else if(f.name.match(/\.docx?$/i)) contractText=await readDOCX(f);
+    else contractText=await f.text();
+    document.getElementById('dzt').innerHTML=`<span class="dzok">✓ ${f.name}</span>`;
+    document.getElementById('gobtn').disabled=false;
+  }catch(e){document.getElementById('dzt').textContent='Erreur — réessayez'}
+}
+async function readPDF(f){
+  const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;
+  let t='';for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i);t+=(await p.getTextContent()).items.map(s=>s.str).join(' ')+'\n'}
+  return t;
+}
+async function readDOCX(f){return(await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()})).value}
+
+// ANALYZE
+async function analyze(){
+  if(!contractText)return;
+  data=null;
+  document.getElementById('rside').style.display='none';
+  document.getElementById('center').innerHTML=`<div class="loading"><div class="dots"><span></span><span></span><span></span></div><p>Analyse BOLD/TDP en cours…</p></div>`;
+  try{
+    const res=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contractText})});
+    if(!res.ok)throw new Error('Erreur serveur '+res.status);
+    const txt=await res.text();
+    const s=txt.indexOf('{'),e=txt.lastIndexOf('}');
+    if(s===-1||e===-1)throw new Error('Réponse invalide');
+    data=JSON.parse(txt.slice(s,e+1));
+    render();
+  }catch(err){
+    document.getElementById('center').innerHTML=`<div class="empty"><div class="ei">⚠️</div><p style="color:var(--red)">${err.message}</p></div>`;
+  }
+}
+
+function render(){
+  renderRside();
+  if(view==='sales') renderSales();
+  else renderLegal();
+}
+
+// ─── RIGHT PANEL ───
+function renderRside(){
+  const d=data;
+  const rc=d.clauses.filter(c=>c.statut==='risque').length;
+  const wc=d.clauses.filter(c=>c.statut==='attention').length;
+  const gc=d.clauses.filter(c=>c.statut==='ok').length;
+  const rs=document.getElementById('rside');
+  rs.style.display='flex';
+  rs.innerHTML=`
+    <div>
+      <div class="rp-lbl">Parties</div>
+      <div class="rp-row"><div class="rp-key">Agence</div><div class="rp-val">${x(d.parties?.agence||'—')}</div></div>
+      <div class="rp-row"><div class="rp-key">Talent</div><div class="rp-val">${x(d.parties?.talent||'—')}</div></div>
+      <div class="rp-row"><div class="rp-key">Client</div><div class="rp-val">${x(d.parties?.client||'—')}</div></div>
+    </div>
+    <div class="rp-div"></div>
+    <div>
+      <div class="rp-lbl">Contrat</div>
+      ${d.campagne?`<div class="rp-row"><div class="rp-key">Campagne</div><div class="rp-val">${x(d.campagne)}</div></div>`:''}
+      ${d.budget?`<div class="rp-row"><div class="rp-key">Budget</div><div class="rp-val">${x(d.budget)}</div></div>`:''}
+      ${d.duree?`<div class="rp-row"><div class="rp-key">Durée</div><div class="rp-val">${x(d.duree)}</div></div>`:''}
+      ${d.livrables?`<div class="rp-row"><div class="rp-key">Livrables</div><div class="rp-val sm">${x(d.livrables)}</div></div>`:''}
+    </div>
+    <div class="rp-div"></div>
+    <div>
+      <div class="rp-lbl">Résultat</div>
+      <div class="stats">
+        <div class="st r"><div class="st-n">${rc}</div><div class="st-l">Risques</div></div>
+        <div class="st w"><div class="st-n">${wc}</div><div class="st-l">Attention</div></div>
+        <div class="st g"><div class="st-n">${gc}</div><div class="st-l">OK</div></div>
+      </div>
+    </div>
+    <div class="rp-div"></div>
+    <button class="expbtn" onclick="exportMD()">⬇ Exporter</button>`;
+}
+
+// ─── SALES VIEW ───
+function renderSales(){
+  const d=data;
+  const ac=d.score==='élevé'?'r':d.score==='modéré'?'w':'g';
+  const icons={r:'⛔',w:'⚡',g:'✅'};
+  const labels={r:'Risque élevé — action requise',w:'Risque modéré — points à négocier',g:'Contrat favorable'};
+  let h='';
+
+  // Banner
+  h+=`<div class="banner ${ac}"><div class="bicon">${icons[ac]}</div><div><div class="btitle">${labels[ac]}</div><div class="btext">${x(d.resume_sales)}</div></div></div>`;
+
+  // Actions prioritaires
+  if(d.actions_prioritaires?.length){
+    h+=`<div class="actions-block"><div class="ab-title">Ce qu'il faut faire avant de signer</div>`;
+    d.actions_prioritaires.forEach(a=>{
+      h+=`<div class="action-row"><div class="adot ${a.urgence}"></div><div><div class="aq">${x(a.quoi)}</div><div class="ap">${x(a.pourquoi)}</div></div></div>`;
+    });
+    h+=`</div>`;
+  }
+
+  // Clauses
+  const risques=d.clauses.filter(c=>c.statut!=='ok');
+  const ok=d.clauses.filter(c=>c.statut==='ok');
+
+  if(risques.length){
+    h+=`<div class="stitle">Clauses à corriger / surveiller</div>`;
+    risques.forEach(c=>h+=clauseCard(c));
+  }
+  if(ok.length){
+    h+=`<div class="stitle" style="margin-top:14px">Clauses conformes</div>`;
+    ok.forEach(c=>h+=clauseCard(c));
+  }
+
+  // Manquantes
+  if(d.manquantes?.length){
+    h+=`<div class="stitle" style="margin-top:14px">Clauses absentes à ajouter</div>
+    <div class="list-block"><ul>${d.manquantes.map(m=>`<li>${x(m)}</li>`).join('')}</ul></div>`;
+  }
+
+  document.getElementById('center').innerHTML=h;
+}
+
+function clauseCard(c){
+  const cc=c.statut==='risque'?'r':c.statut==='attention'?'w':'g';
+  const bl=c.statut==='risque'?'Risque':c.statut==='attention'?'À revoir':'Conforme';
+  const absent=!c.legal_texte_original||c.legal_texte_original==='null';
+  return `<div class="ccard">
+    <div class="chead" onclick="toggle('c${c.id}')">
+      <div class="cdot ${cc}"></div>
+      <div class="ctitle">${x(c.titre)}</div>
+      <div class="cart">${x(c.article)}</div>
+      <div class="cbadge ${cc}">${bl}</div>
+      <div class="carrow" id="arr-c${c.id}">▼</div>
+    </div>
+    <div class="csales">${x(c.sales)}</div>
+    <div class="cdetail" id="c${c.id}">
+      ${absent
+        ?`<div class="cdsec"><div class="cdlbl">Statut</div><div class="cdtxt absent">⚠ Clause absente du contrat — à ajouter</div></div>`
+        :`<div class="cdsec"><div class="cdlbl">Texte actuel (${x(c.article)})</div><div class="cdtxt mut">${x(c.legal_texte_original)}</div></div>`
+      }
+      ${c.legal_correction&&c.legal_correction!=='null'
+        ?`<div class="cdsec"><div class="cdlbl">Version recommandée</div><div class="cdtxt fix">${x(c.legal_correction)}</div></div>`
+        :c.statut==='ok'?`<div class="cdsec"><div class="cdtxt" style="color:var(--grn)">✅ Conforme aux standards BOLD/TDP</div></div>`:''
+      }
+    </div>
+  </div>`;
+}
+
+// ─── LEGAL VIEW ───
+function renderLegal(){
+  const d=data;
+  const ac=d.score==='élevé'?'r':d.score==='modéré'?'w':'g';
+  let h='';
+
+  h+=`<div class="banner ${ac}"><div class="bicon">${d.score==='élevé'?'⚠️':d.score==='modéré'?'⚡':'✅'}</div><div><div class="btitle">Risque ${d.score} — Analyse juridique BOLD/TDP</div><div class="btext">${x(d.resume_sales)}</div></div></div>`;
+
+  h+=`<div class="stitle">Analyse des clauses</div>
+  <table class="legal-table">
+    <thead><tr>
+      <th style="width:160px">Clause</th>
+      <th style="width:70px">Article</th>
+      <th style="width:80px">Statut</th>
+      <th>Problème</th>
+      <th>Correction</th>
+    </tr></thead>
+    <tbody>`;
+
+  d.clauses.forEach(c=>{
+    const cc=c.statut==='risque'?'r':c.statut==='attention'?'w':'g';
+    const bl=c.statut==='risque'?'Risque':c.statut==='attention'?'À revoir':'Conforme';
+    const absent=!c.legal_texte_original||c.legal_texte_original==='null';
+    h+=`
+      <tr class="expand-row" onclick="toggleLegal(${c.id})">
+        <td><strong>${x(c.titre)}</strong></td>
+        <td style="font-family:monospace;font-size:12px;color:var(--t3)">${x(c.article)}</td>
+        <td><span class="lpill ${cc}">${bl}</span></td>
+        <td style="color:var(--t2)">${x(c.legal_probleme||c.sales)}</td>
+        <td style="color:${c.legal_correction&&c.legal_correction!=='null'?'var(--grn)':'var(--t3)'}">${c.legal_correction&&c.legal_correction!=='null'?'Voir détail ↓':'—'}</td>
+      </tr>
+      <tr><td colspan="5" style="padding:0">
+        <div class="legal-expand" id="le${c.id}">
+          ${absent?`<div class="le-sec"><div class="le-lbl">Statut</div><div class="le-txt absent">⚠ Clause absente — à ajouter selon standards BOLD/TDP</div></div>`
+                  :`<div class="le-sec"><div class="le-lbl">Texte original</div><div class="le-txt mut">${x(c.legal_texte_original)}</div></div>`}
+          <div class="le-sec"><div class="le-lbl">Analyse</div><div class="le-txt">${x(c.legal_probleme)}</div></div>
+          ${c.legal_correction&&c.legal_correction!=='null'
+            ?`<div class="le-sec"><div class="le-lbl">Correction BOLD/TDP</div><div class="le-txt fix">${x(c.legal_correction)}</div></div>`:''
+          }
+        </div>
+      </td></tr>`;
+  });
+  h+=`</tbody></table>`;
+
+  if(d.manquantes?.length){
+    h+=`<div class="stitle" style="margin-top:16px">Clauses manquantes</div><div class="list-block"><ul>${d.manquantes.map(m=>`<li>${x(m)}</li>`).join('')}</ul></div>`;
+  }
+  if(d.points_negociation?.length){
+    h+=`<div class="stitle" style="margin-top:14px">Points de négociation prioritaires</div><div class="list-block"><ul>${d.points_negociation.map(n=>`<li>${x(n)}</li>`).join('')}</ul></div>`;
+  }
+
+  document.getElementById('center').innerHTML=h;
+}
+
+// TOGGLE
+function toggle(id){
+  const el=document.getElementById(id);
+  const ar=document.getElementById('arr-'+id);
+  ar.classList.toggle('open',el.classList.toggle('open'));
+}
+function toggleLegal(id){
+  const el=document.getElementById('le'+id);
+  el.classList.toggle('open');
+}
+
+// EXPORT
+function exportMD(){
+  if(!data)return;
+  const d=data;
+  let md=`# Analyse ContractIQ — BOLD/TDP\n\n`;
+  md+=`## Parties\n- Agence : ${d.parties?.agence||'—'}\n- Talent : ${d.parties?.talent||'—'}\n- Client : ${d.parties?.client||'—'}\n`;
+  if(d.campagne)md+=`- Campagne : ${d.campagne}\n`;if(d.budget)md+=`- Budget : ${d.budget}\n`;if(d.duree)md+=`- Durée : ${d.duree}\n`;
+  md+=`\n## Risque global : ${d.score}\n${d.resume_sales}\n\n`;
+  md+=`## Actions prioritaires\n${(d.actions_prioritaires||[]).map(a=>`- [${a.urgence}] ${a.quoi} — ${a.pourquoi}`).join('\n')}\n\n`;
+  md+=`## Clauses\n\n| Clause | Article | Statut | Problème | Correction |\n|---|---|---|---|---|\n`;
+  d.clauses.forEach(c=>{md+=`| ${c.titre} | ${c.article} | ${c.statut} | ${(c.sales||'').replace(/\n/g,' ')} | ${(c.legal_correction||'—').replace(/\n/g,' ')} |\n`});
+  if(d.manquantes?.length)md+=`\n## Manquantes\n${d.manquantes.map(m=>`- ${m}`).join('\n')}\n`;
+  if(d.points_negociation?.length)md+=`\n## Négociation\n${d.points_negociation.map(n=>`- ${n}`).join('\n')}\n`;
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([md],{type:'text/markdown'}));a.download='analyse-bold-tdp.md';a.click();
+}
+
+function x(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+</script>
+</body>
+</html>
