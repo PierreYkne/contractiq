@@ -21,23 +21,39 @@ export default {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': 'REMPLACER_CLE',
+          'x-api-key': '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',
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 8000,
+          max_tokens: 4000,
           temperature: 0,
-          system: 'Tu es expert juridique contrats influence France. Analyse dans interet AGENCE. Standards BOLD/TDP: paiement max 30j+penalites, pas droits moraux, licence limitee+interdiction IA, exclusivite remuneree+concurrents listes, responsabilite Agence plafonnee+dommages indirects exclus, resiliation apres mise en demeure 15j, confidentialite mutuelle 3ans, droit francais+Paris, RGPD, force majeure Art.1218. Retourne UNIQUEMENT JSON valide sans backticks: {"parties":{"agence":"","talent":"","client":""},"campagne":"","budget":"","duree":"","livrables":"","score":"eleve|modere|faible","resume_sales":"2-3 phrases simples","actions_prioritaires":[{"urgence":"critique|important|mineur","quoi":"action","pourquoi":"raison"}],"clauses":[{"id":1,"titre":"","article":"Art.X","statut":"risque|attention|ok","sales":"1 phrase simple","legal_probleme":"analyse complete","legal_texte_original":"extrait ou null","legal_correction":"correction ou null"}],"manquantes":[""],"points_negociation":[""]}',
-          messages: [{
-            role: 'user',
-            content: 'Analyse ce contrat:\n\n' + contractText
-          }]
+          system: 'Tu es expert juridique contrats influence France. Analyse dans interet AGENCE BOLD/TDP. Reponds UNIQUEMENT avec du JSON valide commencant par { et finissant par }. Pas de texte avant ou apres. Format: {"parties":{"agence":"","talent":"","client":""},"campagne":"","budget":"","duree":"","livrables":"","score":"eleve|modere|faible","resume_sales":"2-3 phrases simples pour les Sales","actions_prioritaires":[{"urgence":"critique|important|mineur","quoi":"action concrete","pourquoi":"explication simple"}],"clauses":[{"id":1,"titre":"nom court","article":"Art.X ou Absent","statut":"risque|attention|ok","sales":"1 phrase simple","legal_probleme":"analyse juridique","legal_texte_original":"extrait ou null","legal_correction":"correction ou null"}],"manquantes":["clause absente"],"points_negociation":["point a negocier"]}',
+          messages: [
+            {
+              role: 'user',
+              content: 'Analyse ce contrat tripartite et retourne le JSON:\n\n' + contractText.substring(0, 6000)
+            },
+            {
+              role: 'assistant',
+              content: '{'
+            }
+          ]
         })
       });
 
       const data = await response.json();
-      const text = (data.content?.[0]?.text || '').trim().replace(/^```json|^```|```$/gm, '').trim();
+
+      if (data.error) {
+        return new Response(JSON.stringify({ error: data.error.message }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+
+      let text = '{' + (data.content?.[0]?.text || '').trim();
+      const last = text.lastIndexOf('}');
+      if (last !== -1) text = text.substring(0, last + 1);
 
       return new Response(text, {
         headers: {
@@ -49,10 +65,7 @@ export default {
     } catch (err) {
       return new Response(JSON.stringify({ error: err.message }), {
         status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       });
     }
   }
