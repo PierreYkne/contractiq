@@ -21,7 +21,7 @@ export default {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': 'REMPLACER_CLE',
+          'x-api-key': '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',
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
