@@ -21,24 +21,18 @@ export default {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': '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',
+          'x-api-key': 'REMPLACER_CLE',
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 4000,
           temperature: 0,
-          system: 'Tu es expert juridique contrats influence France. Analyse dans interet AGENCE BOLD/TDP. Reponds UNIQUEMENT avec du JSON valide commencant par { et finissant par }. Pas de texte avant ou apres. Format: {"parties":{"agence":"","talent":"","client":""},"campagne":"","budget":"","duree":"","livrables":"","score":"eleve|modere|faible","resume_sales":"2-3 phrases simples pour les Sales","actions_prioritaires":[{"urgence":"critique|important|mineur","quoi":"action concrete","pourquoi":"explication simple"}],"clauses":[{"id":1,"titre":"nom court","article":"Art.X ou Absent","statut":"risque|attention|ok","sales":"1 phrase simple","legal_probleme":"analyse juridique","legal_texte_original":"extrait ou null","legal_correction":"correction ou null"}],"manquantes":["clause absente"],"points_negociation":["point a negocier"]}',
-          messages: [
-            {
-              role: 'user',
-              content: 'Analyse ce contrat tripartite et retourne le JSON:\n\n' + contractText.substring(0, 6000)
-            },
-            {
-              role: 'assistant',
-              content: '{'
-            }
-          ]
+          system: 'Tu es expert juridique contrats influence France. Analyse dans interet AGENCE BOLD/TDP. Reponds UNIQUEMENT avec du JSON valide. Pas de texte avant ou apres, pas de backticks. Format exact: {"parties":{"agence":"","talent":"","client":""},"campagne":"","budget":"","duree":"","livrables":"","score":"eleve|modere|faible","resume_sales":"2-3 phrases simples","actions_prioritaires":[{"urgence":"critique|important|mineur","quoi":"action","pourquoi":"raison"}],"clauses":[{"id":1,"titre":"","article":"Art.X","statut":"risque|attention|ok","sales":"1 phrase","legal_probleme":"analyse","legal_texte_original":"extrait ou null","legal_correction":"correction ou null"}],"manquantes":[""],"points_negociation":[""]}',
+          messages: [{
+            role: 'user',
+            content: 'Analyse ce contrat et retourne UNIQUEMENT le JSON:\n\n' + contractText.substring(0, 5000)
+          }]
         })
       });
 
@@ -51,11 +45,20 @@ export default {
         });
       }
 
-      let text = '{' + (data.content?.[0]?.text || '').trim();
-      const last = text.lastIndexOf('}');
-      if (last !== -1) text = text.substring(0, last + 1);
+      const raw = (data.content?.[0]?.text || '').trim();
+      const start = raw.indexOf('{');
+      const end = raw.lastIndexOf('}');
 
-      return new Response(text, {
+      if (start === -1 || end === -1) {
+        return new Response(JSON.stringify({ error: 'JSON invalide', raw: raw.substring(0, 200) }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        });
+      }
+
+      const json = raw.substring(start, end + 1);
+
+      return new Response(json, {
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
           'Access-Control-Allow-Origin': '*'
